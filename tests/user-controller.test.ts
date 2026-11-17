@@ -1,48 +1,49 @@
 // tests/api.spec.ts
 import {test, expect} from '@playwright/test';
-import type {APIRequestContext} from '@playwright/test';
-
+import {StatusCodes} from "http-status-codes";
 let baseURL: string = 'http://localhost:3000/users';
 
-test.describe('User management API', () => {
 
-    const cleanupUsers = async (request: APIRequestContext): Promise<void> => {
-        const response = await request.get(`${baseURL}`);
-        const users: Array<any> = await response.json();
+test('find user: should return a user by ID', async ({ request }) => {
+    const createUserResponse = await request.post(`${baseURL}`);
+    const createdUser = await createUserResponse.json();
+    expect(createUserResponse.status()).toBe(StatusCodes.CREATED);
 
-        let i = 0;
-        for (i; i < users.length; i = i + 1) {
-            await request.delete(`${baseURL}/${users[i].id}`)
-        }
-        console.log(`Removed: ${i} users`);
-    }
+    const response = await request.get(`${baseURL}/${createdUser.id}`);
+    expect(response.status()).toBe(StatusCodes.OK);
+});
 
-    test('all users: should return empty array when no users', async ({ request }) => {
-        await cleanupUsers(request);
-        const responseAfterCleanup = await request.get(`${baseURL}`);
-        const usersAfterCleanUp = await responseAfterCleanup.json();
-        expect(usersAfterCleanUp.length).toBe(0);
-    });
+test('find user: should return 404 if user not found', async ({ request }) => {
+    // always more than 100, id > 100
+    const nonExistingUserId = 101;
+    const response = await request.get(`${baseURL}/${nonExistingUserId}`);
+    expect(response.status()).toBe(StatusCodes.NOT_FOUND);
+});
 
-    test('find user: should return a user by ID', async ({ request }) => {
+test('create user: should add a new user', async ({ request }) => {
+    const createUserResponse = await request.post(`${baseURL}`);
+    const createdUser = await createUserResponse.json();
+    expect(createUserResponse.status()).toBe(StatusCodes.CREATED);
 
-    });
+    expect (typeof createdUser.id).toBe('number');
+    expect (typeof createdUser.name).toBe('string');
+    expect (typeof createdUser.email).toBe('string');
+    expect (typeof createdUser.phone).toBe('string');
+    console.log('Created user:', createdUser);
+});
 
-    test('find user: should return 404 if user not found', async ({ request }) => {
+test('delete user: should delete a user by ID', async ({ request }) => {
+    const createUserResponse = await request.post(`${baseURL}`);
+    const createdUser = await createUserResponse.json();
+    expect(createUserResponse.status()).toBe(StatusCodes.CREATED);
 
-    }); // always more than 100, id > 100
+    const deleteResponse = await request.delete(`${baseURL}/${createdUser.id}`);
+    expect(deleteResponse.status()).toBe(StatusCodes.OK);
+});
 
-    test('create user: should add a new user', async ({ request }) => {
-
-    });
-
-    test('delete user: should delete a user by ID', async ({ request }) => {
-
-    });
-
-    test('delete user: should return 404 if user not found', async ({ request }) => {
-
-    });
-
-
+test('delete user: should return 404 if user not found', async ({ request }) => {
+    // always more than 100, id > 100
+    const nonExistingUserId = 101;
+    const deleteResponse = await request.delete(`${baseURL}/${nonExistingUserId}`);
+    expect(deleteResponse.status()).toBe(StatusCodes.NOT_FOUND);
 });
